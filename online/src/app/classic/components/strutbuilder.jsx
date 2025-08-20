@@ -8,7 +8,8 @@ import MenuItem from '@suid/material/MenuItem';
 
 import { controllerProperty, subController, useEditor } from '../../framework/context/editor.jsx';
 
-import { StrutLengthPanel } from './length.jsx';
+// Replaced legacy length/scale UI with quick strut builder
+import { StrutQuickBuilderPanel } from './strutquickbuilder.jsx';
 import { OrbitPanel } from './orbitpanel.jsx';
 import { useSymmetry } from "../context/symmetry.jsx";
 
@@ -64,7 +65,7 @@ export const StrutBuildPanel = () =>
           <MenuItem onClick={ resetOrbitColors }>reset orbit colors</MenuItem>
         </Menu>
       </OrbitPanel>
-      <StrutLengthPanel controller={buildOrbits()} />
+  <StrutQuickBuilderPanel controller={buildOrbits()} />
       </Show>
     </div>
   );

@@ -47,6 +47,15 @@ const prepareSceneResponse = ( design, sceneIndex ) =>
   return { title, shapes, camera, lighting, embedding, polygons };
 }
 
+// Provide safe fallbacks for camera & lighting to avoid serialization errors when partially initialized
+const safeRenderConfig = ( rendered ) => {
+  const camera = { near: 0.01, far: 1000, width: 4, distance: 40, perspective: true, lookAt: [0,0,0], lookDir: [0,0,-1], up: [0,1,0], ...( rendered?.camera || {} ) };
+  const lighting = { ambientColor: '#777777', backgroundColor: '#ffffff', directionalLights: [], ...( rendered?.lighting || {} ) };
+  // normalize any directional lights missing color
+  lighting.directionalLights = (lighting.directionalLights||[]).map( dl => ({ color: dl.color || '#888888', direction: dl.direction || [0,0,1] }) );
+  return { camera, lighting };
+}
+
 const prepareEditSceneResponse = ( design, edit, before ) =>
   {
     let sceneInstances = design.wrapper .getScene( edit, before );
@@ -595,6 +604,40 @@ onmessage = ({ data }) =>
       break;
     }
 
+    case 'SIMPLE_STRUT_CREATE':
+    {
+      // payload: { anchorId, orbit, lengthScale, half, index }
+      const { anchorId, orbit, lengthScale=1, half=false, index=0 } = payload;
+      try {
+        // Minimal heuristic creation bypassing buildPlane controller.
+        const rm = design.renderedModel.getRenderedManifestation( anchorId );
+        if ( !rm ) throw new Error('anchor not found');
+        const anchor = rm.getManifestation().toConstruction();
+        // Acquire axis from orbit + index
+        const orbitSource = design.wrapper.controller.getSubController( 'symmetry' ).getOrbitSource();
+        const dir = orbitSource.getDirection( orbit );
+        const axis = dir.getAxis( 0, index ); // 0 meaning PLUS sense
+        // lengthScale maps to existing predefined: supershort=0, short=1, medium=2, long=3 (approx)
+        const lengthController = design.wrapper.controller.getSubController( `buildPlane/length.${orbit}` )
+            || design.wrapper.controller.getSubController( `buildPlane/length.${dir.getName()}` );
+        if ( lengthController ) {
+          design.wrapper.setProperty( `buildPlane/length.${orbit}`, 'scale', ''+lengthScale );
+          const halfProp = design.wrapper.getProperty( `buildPlane/length.${orbit}`, 'half' );
+          if ( (halfProp === 'true') !== half ) {
+            design.wrapper.doAction( `buildPlane/length.${orbit}`, 'toggleHalf' );
+          }
+        }
+        // Perform StrutCreation edit directly
+  // Fallback length: use direction canonical unit scaled; if API absent, let legacy decide default via lengthScale mapping
+  design.wrapper.doEdit( 'StrutCreation', { anchor, zone: axis, length: axis.getLength ? axis.getLength( lengthScale ) : axis } );
+        reportDefaultScene( sendToClient );
+      } catch (error) {
+        console.log( 'SIMPLE_STRUT_CREATE failed', error );
+        sendToClient( { type: 'ALERT_RAISED', payload: 'Failed to create strut.' } );
+      }
+      break;
+    }
+
     case 'HINGE_STRUT_SELECTED':
     {
       design.wrapper .doAction( 'buildPlane', type, payload );
@@ -626,6 +669,81 @@ onmessage = ({ data }) =>
     {
       design.wrapper .endPreviewStrut();
       reportDefaultScene( sendToClient );
+      break;
+    }
+
+    case 'HISTORY_REQUESTED':
+    {
+      try {
+        // Serialize full design (includes <EditHistory/>), then extract just that element to reduce payload.
+        // NOTE: This is a simple substring extraction; if structure changes, consider DOM parsing.
+        if ( !design?.wrapper ) {
+          sendToClient( { type: 'EDIT_HISTORY_SERIALIZED', payload: { xml: '<EditHistory/>' } } );
+          break;
+        }
+    const { camera, lighting } = safeRenderConfig( design.rendered );
+    const xml = design.wrapper .serializeVZomeXml( lighting, camera );
+        let historyXml = '<EditHistory/>';
+        const start = xml.indexOf( '<EditHistory' );
+        if ( start >= 0 ) {
+          const closeTag = '</EditHistory>';
+          const end = xml.indexOf( closeTag, start );
+          if ( end >= 0 ) historyXml = xml.substring( start, end + closeTag.length );
+          else {
+            // attempt self-closing variant detection
+            const selfClose = xml.indexOf( '/>', start );
+            if ( selfClose > start ) historyXml = xml.substring( start, selfClose + 2 );
+          }
+        }
+        sendToClient( { type: 'EDIT_HISTORY_SERIALIZED', payload: { xml: historyXml } } );
+      } catch (error) {
+        console.log( `HISTORY_REQUESTED error: ${error.message}` );
+        sendToClient( { type: 'EDIT_HISTORY_SERIALIZED', payload: { xml: `<EditHistory error="${error.message}"/>` } } );
+      }
+      break;
+    }
+
+    case 'HISTORY_REPLACE':
+    {
+      const { historyXml } = payload || {};
+      try {
+        if ( !design?.wrapper ) throw new Error( 'No design loaded' );
+        if ( typeof historyXml !== 'string' || !historyXml.startsWith('<EditHistory') ) throw new Error( 'historyXml must start with <EditHistory' );
+
+        // Serialize current doc
+    const { camera, lighting } = safeRenderConfig( design.rendered );
+    const currentXml = design.wrapper .serializeVZomeXml( lighting, camera );
+        const historyRegex = /<EditHistory[\s\S]*?<\/EditHistory>/;
+        if ( !historyRegex.test( currentXml ) ) throw new Error( 'Existing EditHistory not found in document' );
+        const newXml = currentXml.replace( historyRegex, historyXml );
+
+        // Reload design from modified XML
+        const events = clientEvents( sendToClient );
+        importLegacy()
+          .then( legacy => {
+            let tempDesign;
+            try {
+              tempDesign = legacy .loadDesign( newXml, false, true, events );
+              // Sanity: attempt serialization so we catch latent issues early
+      const { camera, lighting } = safeRenderConfig( tempDesign.rendered );
+      tempDesign.wrapper .serializeVZomeXml( lighting, camera );
+            } catch (loadErr) {
+              throw loadErr; // will be caught below
+            }
+            // Success; replace global design
+            design = tempDesign;
+            prepareDefaultScene( design );
+            events.sceneChanged( prepareSceneResponse( design, 0 ) );
+            sendToClient( { type: 'HISTORY_REPLACED', payload: { success: true } } );
+          })
+          .catch( error => {
+            console.log( `HISTORY_REPLACE load error: ${error.message}` );
+            sendToClient( { type: 'HISTORY_REPLACED', payload: { success: false, message: error.message } } );
+          });
+      } catch ( error ) {
+        console.log( `HISTORY_REPLACE error: ${error.message}` );
+        sendToClient( { type: 'HISTORY_REPLACED', payload: { success: false, message: error.message } } );
+      }
       break;
     }
   

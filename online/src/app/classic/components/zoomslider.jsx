@@ -1,5 +1,6 @@
 
 import { Slider } from "@kobalte/core/slider";
+import { Tooltip } from "@kobalte/core/tooltip";
 
 import { INITIAL_DISTANCE, useCamera } from "../../../viewer/context/camera";
 
@@ -38,10 +39,19 @@ export const ZoomSlider = () =>
     <Slider class="SliderRoot" orientation="vertical" 
         value={ ticks() } onChange={ setTicks }>
       <div class="SliderLabel">
-        <Slider.Label>Distance</Slider.Label>
+        <Tooltip openDelay={400} closeDelay={100}>
+          <Tooltip.Trigger>
+            <Slider.Label>Camera distance</Slider.Label>
+          </Tooltip.Trigger>
+          <Tooltip.Content class="rt-content" gutter={8}>
+            <div class='rt-title'><span class='rt-name'>Camera distance</span></div>
+            <div class='rt-help'>Zoom in/out. Wheel over trackball also adjusts this.</div>
+            <Tooltip.Arrow />
+          </Tooltip.Content>
+        </Tooltip>
       </div>
-      <div class='near-label'>Near</div>
-      <div class='far-label'>Far</div>
+      <div class='near-label'>near</div>
+      <div class='far-label'>far</div>
       <Slider.Track class="SliderTrack">
         <Slider.Thumb class="SliderThumb">
           <Slider.Input />

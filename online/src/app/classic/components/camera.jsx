@@ -2,9 +2,9 @@
 import { createEffect } from 'solid-js';
 import { createStore } from 'solid-js/store';
 
-import Stack from "@suid/material/Stack"
-import Switch from "@suid/material/Switch";
-import FormControlLabel from "@suid/material/FormControlLabel";
+import Stack from "@suid/material/Stack";
+import { Tooltip } from "@kobalte/core/tooltip";
+import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 
 import { useEditor } from '../../framework/context/editor.jsx';
 import { useSymmetry } from "../context/symmetry.jsx";
@@ -28,6 +28,13 @@ export const CameraControls = (props) =>
   const [ scene, setScene ] = createStore( null );
 
   const isPerspective = () => state.camera.perspective;
+
+  // Camera view presets
+  const preset = (lookDir, up) => () => {
+    const { distance, lookAt } = state.camera;
+    const goal = { distance, lookAt, lookDir, up };
+    context.tweenCamera(goal);
+  };
 
   // TODO: encapsulate these and createStore() in a new createScene()... 
   //  OR...
@@ -85,20 +92,92 @@ export const CameraControls = (props) =>
       {/* provider and CameraTool just to get the desired cursor */}
       <SnapCameraTool/>
       <div id='camera-controls'>
-        <Stack spacing={1} direction="row" style={{ padding: '8px' }}>
-          <FormControlLabel label="perspective" style={{ 'margin-right': '0' }}
-            control={
-              <Switch checked={isPerspective()} onChange={togglePerspective} size='small' inputProps={{ "aria-label": "controlled" }} />
-          }/>
-          <FormControlLabel label="snap"
-            control={
-              <Switch checked={snapping()} onChange={toggleSnapping} size='small' inputProps={{ "aria-label": "controlled" }} />
-          }/>
-          <FormControlLabel label="outlines"
-            control={
-              <Switch checked={state.outlines} onChange={toggleOutlines} size='small' inputProps={{ "aria-label": "controlled" }} />
-          }/>
-        </Stack>
+        <div class='segmented'>
+          <div class='segmented__label'>View</div>
+          <div role='group' aria-label='View options' class='segmented__group'>
+            <Tooltip openDelay={400} closeDelay={100}>
+              <Tooltip.Trigger>
+                <button type='button'
+                        class='segmented__button'
+                        aria-pressed={isPerspective() ? 'true' : 'false'}
+                        onClick={togglePerspective}>
+                  Perspective
+                </button>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content class='rt-content' gutter={8}>
+                  <div class='rt-title'><span class='rt-name'>Perspective</span></div>
+                  <div class='rt-help'>Toggle perspective vs. orthographic camera.</div>
+                  <Tooltip.Arrow />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip>
+
+            <Tooltip openDelay={400} closeDelay={100}>
+              <Tooltip.Trigger>
+                <button type='button'
+                        class='segmented__button'
+                        aria-pressed={snapping() ? 'true' : 'false'}
+                        onClick={toggleSnapping}>
+                  Snap
+                </button>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content class='rt-content' gutter={8}>
+                  <div class='rt-title'><span class='rt-name'>Snap</span></div>
+                  <div class='rt-help'>Snap trackball rotations to symmetry.</div>
+                  <Tooltip.Arrow />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip>
+
+            <Tooltip openDelay={400} closeDelay={100}>
+              <Tooltip.Trigger>
+                <button type='button'
+                        class='segmented__button'
+                        aria-pressed={state.outlines ? 'true' : 'false'}
+                        onClick={toggleOutlines}>
+                  Outlines
+                </button>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content class='rt-content' gutter={8}>
+                  <div class='rt-title'><span class='rt-name'>Outlines</span></div>
+                  <div class='rt-help'>Show or hide model outlines.</div>
+                  <Tooltip.Arrow />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip>
+
+          </div>
+          <div style={{"margin-left":"8px", display:"inline-flex", gap: "6px"}}>
+            {/* Presets dropdown (moved outside segmented group for visibility) */}
+            <DropdownMenu>
+              <DropdownMenu.Trigger class="segmented__button" aria-label="View presets">Presets ▾</DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content class="dropdown-menu__content">
+                  <DropdownMenu.Item class="dropdown-menu__item" onSelect={preset([0,0,-1],[0,1,0])}>Front</DropdownMenu.Item>
+                  <DropdownMenu.Item class="dropdown-menu__item" onSelect={preset([0,-1,0],[0,0,-1])}>Top</DropdownMenu.Item>
+                  <DropdownMenu.Item class="dropdown-menu__item" onSelect={preset([1,0,0],[0,1,0])}>Right</DropdownMenu.Item>
+                  <DropdownMenu.Item class="dropdown-menu__item" onSelect={preset([1,-1,-1].map(v=>v/Math.sqrt(3)),[0,1,0])}>Isometric</DropdownMenu.Item>
+                  <DropdownMenu.Arrow />
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu>
+            <Tooltip openDelay={400} closeDelay={100}>
+              <Tooltip.Trigger>
+                <button type='button' class='segmented__button' onClick={context.resetCamera}>Reset</button>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content class='rt-content' gutter={8}>
+                  <div class='rt-title'><span class='rt-name'>Reset view</span><span class='rt-shortcut'>R</span></div>
+                  <div class='rt-help'>Restore the default camera and lighting.</div>
+                  <Tooltip.Arrow />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip>
+          </div>
+        </div>
 
         <div id="ball-and-slider">
           <div id="camera-trackball">

@@ -59,10 +59,10 @@ export const OrbitPanel = props =>
     <div style={marginedStyle}>
       <InputLabel id="orbits-label">{props.label}</InputLabel>
       <Stack spacing={2} direction="row">
-        <Button variant="outlined" style={marginedStyle} onClick={ selectNone } >None</Button>
-        <Button variant="outlined" style={marginedStyle} onClick={ selectAll } >All</Button>
+        <Button variant="outlined" style={marginedStyle} onClick={ selectNone } aria-label="Select none">None</Button>
+        <Button variant="outlined" style={marginedStyle} onClick={ selectAll } aria-label="Select all">All</Button>
         <Show when={props.lastSelected}>
-          <FormControlLabel style={marginedStyle} label="single"
+          <FormControlLabel style={marginedStyle} label="Single"
             control={
             <Switch checked={oneAtATime()} onChange={singleAction} size='small' inputProps={{ "aria-label": "controlled" }} />
           }/>

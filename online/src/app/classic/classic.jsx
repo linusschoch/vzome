@@ -11,6 +11,7 @@ import { SceneEditor } from './components/editor.jsx';
 import { ErrorAlert } from "./components/alert.jsx";
 import { SceneControls } from './components/scenecontrols.jsx';
 import { MeasurePanel } from './components/measure.jsx';
+import { EditHistoryPanel } from './components/edithistorypanel.jsx';
 
 export const ClassicEditor = () =>
 {
@@ -33,7 +34,10 @@ export const ClassicEditor = () =>
           <ToolFactoryBar/>
           <ToolBar toolsController={toolsController()} editorController={rootController()} />
           <div id='canvas-and-bookmarks' style={{ display: 'grid', 'grid-template-columns': 'min-content 1fr' }}>
-            <BookmarkBar bookmarkController={bookmarkController()} toolsController={toolsController()} />
+            <div>
+              <BookmarkBar bookmarkController={bookmarkController()} toolsController={toolsController()} />
+              <EditHistoryPanel />
+            </div>
             <SceneEditor/>
           </div>
           <div id='article-and-status' style={{ display: 'grid', 'grid-template-columns': 'min-content 1fr' }}>

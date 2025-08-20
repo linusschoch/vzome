@@ -14,6 +14,7 @@ import { controllerProperty, useEditor } from '../framework/context/editor.jsx';
 
 import { VZomeAppBar } from './components/appbar.jsx';
 import { ClassicEditor } from './classic.jsx';
+import { UndoRedoInline } from './components/undoredo.jsx';
 import { SymmetryProvider } from './context/symmetry.jsx';
 import { CommandsProvider } from './context/commands.jsx';
 
@@ -54,6 +55,7 @@ export const ClassicApp = () =>
               <SystemMenu/>
               <HelpMenu/>
             </Menubar>
+            <UndoRedoInline/>
             <Persistence/>
           </>}
           about={ <>
