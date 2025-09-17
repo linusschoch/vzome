@@ -129,8 +129,10 @@ export const Label = (props) =>
         const worldHeight = cam.top - cam.bottom;
         pixelsPerUnit = heightPx / Math.max(worldHeight, 0.0001);
       }
-      // Base sizing: 0.9em per unit radius on screen, clamped
-      const px = Math.max(10, Math.min(48, radius * pixelsPerUnit * 0.22));
+      // Base sizing: 2.5mm minimum for overall label size (including background)
+      const calculatedPx = radius * pixelsPerUnit * 0.6; // 2x scaling factor for 2.5mm total label size
+      const minPx = 19; // Half of previous 38px for 2.5mm overall label dimensions
+      const px = Math.max(minPx, Math.min(96, calculatedPx));
       elem.style.fontSize = `${px.toFixed(0)}px`;
       elem.style.transformOrigin = 'center center';
     } catch {

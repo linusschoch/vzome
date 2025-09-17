@@ -7,7 +7,7 @@ const panelLabelCSS = `
 .vzome-panel-label {
   color: var(--vzome-panel-label-color, #333);
   background-color: transparent !important;
-  font-size: var(--vzome-label-font-px, 16px);
+  font-size: max(19px, var(--vzome-label-font-px, 16px)); /* 5mm minimum height */
   font-style: var(--vzome-panel-label-style, normal);
   font-weight: var(--vzome-panel-label-weight, 500);
   padding: 0; /* no padding so only math is visible */
@@ -135,11 +135,15 @@ export const PanelLabel = (props) =>
     // Optional: adjust font size based on type (panels generally keep a consistent size)
     try {
       const type = props.type;
+      const minSize = 10; // 2.5mm minimum (half of previous 5mm)
       if (type === 'ball') {
-        elem.style.fontSize = '14px';
+        elem.style.fontSize = `${Math.max(minSize, 14)}px`; // Ensure 2.5mm minimum even for balls
         elem.style.transformOrigin = 'center center';
       } else {
-        elem.style.fontSize = '';
+        // For other labels, use CSS variable but enforce minimum
+        const cssVar = getComputedStyle(document.documentElement).getPropertyValue('--vzome-label-font-px');
+        const currentSize = cssVar ? parseInt(cssVar.replace('px', '')) : 16;
+        elem.style.fontSize = `${Math.max(minSize, currentSize)}px`; // 2.5mm minimum for all labels
         elem.style.transformOrigin = '';
       }
     } catch {}
