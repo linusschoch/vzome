@@ -7,7 +7,7 @@ img {
 .vzome-label {
   font-weight: bold;
   font-size: large;
-  background-color: white;
+  background-color: transparent;
 }
 
 .persistence {

@@ -20,6 +20,7 @@ const panelLabelCSS = `
   min-width: 0;
   min-height: 0;
   transition: none;
+  background: transparent !important; /* Ensure completely transparent background */
 }
 
 .vzome-panel-label:hover {
