@@ -40,6 +40,15 @@ clean() {
 }
 
 marshallResources() {
+  # Ensure Git LFS-managed assets are present before copying resources
+  if command -v git >/dev/null 2>&1; then
+    banner 'Ensuring Git LFS assets are present'
+    git lfs version >/dev/null 2>&1 && {
+      git lfs install --local || true
+      # Pull desktop and core resource binaries that may be stored via LFS
+      git lfs pull --include="desktop/src/main/resources/**,core/src/main/resources/**" --exclude="" || true
+    }
+  fi
   banner 'Marshalling core and desktop resources'
   # Remove the detritus of earlier builds (& dev server)
   rm -rf serve/modules || exit $?
