@@ -2,6 +2,7 @@
 import { createEffect, onMount, useFrame, useThree } from "solid-three";
 import { Vector3 } from "three";
 import { CSS2DObject, CSS2DRenderer } from "three-stdlib";
+import { Raycaster, Vector3 as ThreeVector3 } from "three";
 
 export const Labels = (props) =>
 {
@@ -40,8 +41,20 @@ export const Label = (props) =>
   let label;  
   let elem;
   const camera = useThree(({ camera }) => camera);
+  const scene = useThree(({ scene }) => scene);
   const gl = useThree(({ gl }) => gl);
   const worldPos = new Vector3();
+  const raycaster = new Raycaster();
+  const tmpDir = new ThreeVector3();
+
+  const isAncestor = (obj, ancestor) => {
+    let cur = obj;
+    while (cur) {
+      if (cur === ancestor) return true;
+      cur = cur.parent;
+    }
+    return false;
+  };
   onMount( () => {
     elem = document .createElement( 'div' );
     elem.className = 'vzome-label';
@@ -135,6 +148,27 @@ export const Label = (props) =>
       const px = Math.max(minPx, Math.min(96, calculatedPx));
       elem.style.fontSize = `${px.toFixed(0)}px`;
       elem.style.transformOrigin = 'center center';
+    } catch {
+      // ignore
+    }
+  });
+
+  // Per-frame occlusion test: hide the label if its parent is occluded by other geometry
+  useFrame(() => {
+    if (!elem) return;
+    const parent = label?.parent;
+    const cam = camera();
+    const s = scene();
+    if (!parent || !cam || !s) return;
+    try {
+      parent.getWorldPosition(worldPos);
+      const distToTarget = cam.position.distanceTo(worldPos);
+      tmpDir.copy(worldPos).sub(cam.position).normalize();
+      raycaster.set(cam.position, tmpDir);
+      const hits = raycaster.intersectObjects(s.children, true);
+      const first = hits.find(h => h.object && h.object.visible !== false);
+      const occluded = first && first.distance < distToTarget - 1e-3 && !isAncestor(first.object, parent);
+      elem.style.display = occluded ? 'none' : 'block';
     } catch {
       // ignore
     }

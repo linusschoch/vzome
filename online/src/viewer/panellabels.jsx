@@ -1,6 +1,7 @@
 import { createEffect, onMount, useFrame, useThree } from "solid-three";
 import { Vector3 } from "three";
 import { CSS2DObject, CSS2DRenderer, CSS3DObject, CSS3DRenderer } from "three-stdlib";
+import { Raycaster } from "three";
 
 // CSS for panel labels
 const panelLabelCSS = `
@@ -57,6 +58,19 @@ export const PanelLabel = (props) =>
 {
   let labelElement;
   let elem;
+  const scene = useThree(({ scene }) => scene);
+  const camera = useThree(({ camera }) => camera);
+  const raycaster = new Raycaster();
+  const worldPos = new Vector3();
+
+  const isAncestor = (obj, ancestor) => {
+    let cur = obj;
+    while (cur) {
+      if (cur === ancestor) return true;
+      cur = cur.parent;
+    }
+    return false;
+  };
   
   const renderContent = () => {
     const text = props.text ?? '';
@@ -150,6 +164,26 @@ export const PanelLabel = (props) =>
     } catch {}
   });
 
+  useFrame(() => {
+    if (!elem || !labelElement) return;
+    const parent = labelElement?.parent;
+    const cam = camera();
+    const s = scene();
+    if (!parent || !cam || !s) return;
+    try {
+      parent.getWorldPosition(worldPos);
+      const dir = worldPos.clone().sub(cam.position).normalize();
+      raycaster.set(cam.position, dir);
+      const hits = raycaster.intersectObjects(s.children, true);
+      const first = hits.find(h => h.object && h.object.visible !== false);
+      const distToTarget = cam.position.distanceTo(worldPos);
+      const occluded = first && first.distance < distToTarget - 1e-3 && !isAncestor(first.object, parent);
+      elem.style.display = occluded ? 'none' : 'block';
+    } catch {
+      // ignore
+    }
+  });
+
   return labelElement;
 };
 
@@ -230,7 +264,7 @@ export const EnhancedLabels = (props) =>
   } );
 
   useFrame( () => {
-    if (labelRenderer) {
+  if (labelRenderer) {
       // Ensure matrixWorld is current so label transforms track their parents
       const s = scene();
       s && s.updateMatrixWorld();
@@ -304,7 +338,7 @@ export const OrientedLabels = (props) =>
   } );
 
   useFrame( () => {
-    if (labelRenderer3D) {
+  if (labelRenderer3D) {
       const s = scene();
       s && s.updateMatrixWorld();
       labelRenderer3D.render( s, camera() );
