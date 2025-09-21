@@ -87,18 +87,31 @@ export const CommandsProvider = props =>
   const listeners = new Set();
   const registerKeyListener = ( modifiers, deleteKey, key, handler ) =>
   {
-    const listenerName = deleteKey? "⌫" : modifiers + key;
+    const listenerName = deleteKey? "⌫" : (modifiers || '') + key;
     if ( ! listeners .has( listenerName ) ) {
       console.log( `addEventListener ${listenerName}` );
-      const targetCodes = deleteKey? [ 'Delete', 'Backspace' ] : [ "Key" + key.toUpperCase() ];
       const hasMeta = !! modifiers ?.includes( '⌘' );
       const hasControl = !! modifiers ?.includes( '⌃' );
       const hasShift = !! modifiers ?.includes( '⇧' );
       const hasOption = !! modifiers ?.includes( '⌥' );
+      const targetLetter = key?.toUpperCase();
+      const matchesKey = (evt) => {
+        if ( deleteKey ) {
+          // Support both key and code for broader browser compatibility
+          const k = evt.key;
+          const c = evt.code;
+          return k === 'Backspace' || k === 'Delete' || c === 'Backspace' || c === 'Delete';
+        }
+        // Prefer layout-aware key matching; fall back to code
+        const k = (evt.key || '') .toUpperCase();
+        if ( k === targetLetter ) return true;
+        const c = evt.code; // like 'KeyZ'
+        return c === ( 'Key' + targetLetter );
+      };
       document.body .addEventListener( "keydown", evt => {
         if ( menuKeyEventsSuspended )
           return;
-        if ( targetCodes .indexOf( evt.code ) < 0 )
+        if ( ! matchesKey( evt ) )
           return;
         if ( hasMeta !== evt.metaKey )
           return;
@@ -108,7 +121,7 @@ export const CommandsProvider = props =>
           return;
         if ( hasOption !== evt.altKey )
           return;
-        evt .preventDefault(); // Why doesn't this work for ⌘N?
+        evt .preventDefault(); // Keep browser from consuming the shortcut (e.g., in inputs)
         handler();
       } );
       listeners .add( listenerName );
@@ -155,7 +168,12 @@ export const CommandsProvider = props =>
 
   createCommand( 'undo',              { mods:"⌘",  key:"Z" }, undoRedoAction( 'undo' ) );
   createCommand( 'undoAll',           { mods:"⌥⌘", key:"Z" }, undoRedoAction( 'undoAll' ) );
-  createCommand( 'redo',              { mods:"⌘",  key:"Y" }, undoRedoAction( 'redo' ) );
+  // Use platform-appropriate redo shortcuts
+  if ( isMac ) {
+    createCommand( 'redo',            { mods:"⇧⌘", key:"Z" }, undoRedoAction( 'redo' ) );
+  } else {
+    createCommand( 'redo',            { mods:"⌘",  key:"Y" }, undoRedoAction( 'redo' ) );
+  }
   createCommand( 'redoAll',           { mods:"⌥⌘", key:"Y" }, undoRedoAction( 'redoAll' ) );
 
   createCommand( 'Cut',               { mods:"⌘",  key:"X" }, doCut );
