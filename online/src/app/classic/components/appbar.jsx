@@ -1,5 +1,6 @@
 
 import { Show, mergeProps } from 'solid-js'
+import PsychologyIcon from '@suid/icons-material/Psychology'; // legacy fallback if needed
 import AppBar from '@suid/material/AppBar'
 import Toolbar from '@suid/material/Toolbar'
 import IconButton from '@suid/material/IconButton'
@@ -15,6 +16,16 @@ export const Spacer = () => <div style={{ flex: '1 1 auto' }}></div>
 
 export const VZomeAppBar = ( props ) =>
 {
+  // simple inline robot icon (stroke-based) to avoid external asset resolution issues
+  const RobotIcon = () => (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role='img' aria-label='AI Robot'>
+      <rect x="3" y="8" width="18" height="11" rx="2" ry="2" />
+      <path d="M12 3v5" />
+      <circle cx="9" cy="13" r="1.8" />
+      <circle cx="15" cy="13" r="1.8" />
+      <path d="M8 18c1.3 1 2.7 1.5 4 1.5s2.7-.5 4-1.5" />
+    </svg>
+  );
   const spacer = <Spacer/>;
   const merged = mergeProps( {
     showOpen: false,
@@ -47,7 +58,7 @@ export const VZomeAppBar = ( props ) =>
           <Show when={props.onToggleAi}>
             <span title={ props.aiMode? 'Exit AI Panel' : 'Open AI Panel' }>
               <IconButton color={ props.aiMode? 'secondary' : 'inherit' } onClick={props.onToggleAi} size='large'>
-                <img src={ './src/assets/openai-logo.svg' } alt='AI' style={{ width: '28px', height: '28px' }} />
+                <RobotIcon/>
               </IconButton>
             </span>
           </Show>
