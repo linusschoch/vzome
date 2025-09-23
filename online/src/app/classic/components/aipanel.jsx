@@ -31,17 +31,19 @@ export const AiPanel = () => {
     setMessages( ms => [ ...ms, { role: 'user', content: prompt } ] );
     setInput( '' );
     try {
-      const res = await fetch( 'https://api.openai.com/v1/chat/completions', {
+    const res = await fetch( 'https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${key}`
         },
         body: JSON.stringify({
-          model: model(),
-          messages: messages().concat( { role: 'user', content: prompt } ).map( m => ({ role: m.role, content: m.content }) ),
-          temperature: 0.6,
-          max_tokens: 200
+      model: model(),
+      // Provide concatenated conversation as a single input string; could also use conversation param.
+      instructions: messages()[0]?.content || 'You are an assistant.',
+      input: messages().slice(1).map(m=>`${m.role.toUpperCase()}: ${m.content}`).join('\n') + `\nUSER: ${prompt}`,
+      temperature: 0.6,
+      max_output_tokens: 200
         })
       });
       if ( !res.ok ) {
@@ -52,8 +54,14 @@ export const AiPanel = () => {
         throw new Error( detail );
       }
       const data = await res.json();
-      const msg = data?.choices?.[0]?.message?.content?.trim() || '(no content)';
-      setMessages( ms => [ ...ms, { role: 'assistant', content: msg } ] );
+      let reply = '(no content)';
+      try {
+        const message = data?.output?.find?.( item => item.type === 'message' );
+        const contentArr = message?.content || [];
+        const textPart = contentArr.find( c => c.type === 'output_text' );
+        reply = textPart?.text?.trim() || reply;
+      } catch { /* ignore */ }
+      setMessages( ms => [ ...ms, { role: 'assistant', content: reply } ] );
     } catch (e) {
       setError( e.message );
     } finally {

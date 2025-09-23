@@ -27,21 +27,20 @@ export const AiHelloDialog = props => {
     if ( ! key ) { setError( 'API key required.' ); return; }
     setLoading( true );
     try {
-      // Official Chat Completions call. For production consider server-side proxy to avoid exposing key.
-      const res = await fetch( 'https://api.openai.com/v1/chat/completions', {
+    // OpenAI Responses API call replacing legacy chat/completions.
+    const res = await fetch( 'https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${key}`
         },
         body: JSON.stringify({
-          model: model(),
-          messages: [
-            { role: 'system', content: 'You are a concise assistant embedded inside the vZome geometry app. Keep replies short.' },
-            { role: 'user', content: userPrompt() }
-          ],
-          temperature: 0.7,
-          max_tokens: 120
+      model: model(),
+      input: userPrompt(),
+      instructions: 'You are a concise assistant embedded inside the vZome geometry app. Keep replies short.',
+      temperature: 0.7,
+      max_output_tokens: 120,
+      // store defaults to true; leave it. We are not streaming here.
         })
       });
       if ( !res.ok ) {
@@ -58,7 +57,14 @@ export const AiHelloDialog = props => {
         throw new Error( `HTTP ${res.status}: ${detail}` );
       }
       const data = await res.json();
-      const msg = data?.choices?.[0]?.message?.content?.trim() || '(no content)';
+      // Responses API returns an array 'output'. Find first output message content text.
+      let msg = '(no content)';
+      try {
+        const message = data?.output?.find?.( item => item.type === 'message' );
+        const contentArr = message?.content || [];
+        const textPart = contentArr.find( c => c.type === 'output_text' );
+        msg = textPart?.text?.trim() || msg;
+      } catch { /* ignore parse errors */ }
       setResponse( msg );
     } catch (e) {
       setError( e.message );
