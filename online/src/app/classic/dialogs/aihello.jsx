@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import Dialog from '@suid/material/Dialog';
 import DialogTitle from '@suid/material/DialogTitle';
 import DialogContent from '@suid/material/DialogContent';
