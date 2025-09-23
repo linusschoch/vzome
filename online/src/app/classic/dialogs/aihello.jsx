@@ -13,35 +13,49 @@ import Alert from '@suid/material/Alert';
   The request is made directly from the browser; consider adding a proxy server for production.
 */
 export const AiHelloDialog = props => {
-  const [ apiKey, setApiKey ]       = createSignal( '' );
+  const [ apiKey, setApiKey ]         = createSignal( '' );
   const [ userPrompt, setUserPrompt ] = createSignal( 'Say hello to vZome!' );
-  const [ response, setResponse ]   = createSignal( '' );
-  const [ loading, setLoading ]     = createSignal( false );
-  const [ error, setError ]         = createSignal( '' );
+  const [ response, setResponse ]     = createSignal( '' );
+  const [ loading, setLoading ]       = createSignal( false );
+  const [ error, setError ]           = createSignal( '' );
+  const [ model, setModel ]           = createSignal( 'gpt-4o-mini' ); // small, fast model for demo
 
   const callApi = async () => {
     setError( '' );
     setResponse( '' );
-    if ( ! apiKey() ) { setError( 'API key required.' ); return; }
+    const key = apiKey().trim();
+    if ( ! key ) { setError( 'API key required.' ); return; }
     setLoading( true );
     try {
-      // Using fetch to call OpenAI Chat Completions (gpt-4o-mini for low cost/fast demo)
+      // Official Chat Completions call. For production consider server-side proxy to avoid exposing key.
       const res = await fetch( 'https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey()}`
+          'Authorization': `Bearer ${key}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [ { role: 'user', content: userPrompt() } ],
+          model: model(),
+          messages: [
+            { role: 'system', content: 'You are a concise assistant embedded inside the vZome geometry app. Keep replies short.' },
+            { role: 'user', content: userPrompt() }
+          ],
           temperature: 0.7,
-          max_tokens: 64
+          max_tokens: 120
         })
       });
       if ( !res.ok ) {
-        const text = await res.text();
-        throw new Error( `HTTP ${res.status}: ${text}` );
+        let detail = '';
+        try {
+          const problem = await res.json();
+          detail = problem?.error?.message || JSON.stringify( problem );
+        } catch(e) {
+          detail = await res.text();
+        }
+        if ( res.status === 401 ) {
+          throw new Error( 'HTTP 401 Unauthorized: Invalid API key. Verify you copied it correctly from https://platform.openai.com/account/api-keys' );
+        }
+        throw new Error( `HTTP ${res.status}: ${detail}` );
       }
       const data = await res.json();
       const msg = data?.choices?.[0]?.message?.content?.trim() || '(no content)';
@@ -62,6 +76,9 @@ export const AiHelloDialog = props => {
           helperText='Key not stored; paste each session.' />
         <TextField label='Prompt' size='small' fullWidth multiline minRows={2}
           value={userPrompt()} onChange={ e => setUserPrompt( e.target.value ) } />
+        <TextField label='Model' size='small' fullWidth
+          value={model()} onChange={ e => setModel( e.target.value ) }
+          helperText='Try gpt-4o, gpt-4o-mini, or another available model.' />
         <Button variant='contained' disabled={loading()} onClick={callApi}>
           { loading()? 'Calling...' : 'Send' }
         </Button>
@@ -71,7 +88,7 @@ export const AiHelloDialog = props => {
         <Show when={response()}>
           <Alert severity='success' sx={{ 'white-space': 'pre-wrap' }}>{response()}</Alert>
         </Show>
-        <Alert severity='info'>Demo only. Avoid sharing secrets in prompts.</Alert>
+        <Alert severity='info'>Demo only. Key never stored. For streaming or secure usage, add a server proxy.</Alert>
       </DialogContent>
       <DialogActions>
         <Button onClick={ () => props.close() } color='primary'>Close</Button>
