@@ -13,6 +13,7 @@ import { SceneControls } from './components/scenecontrols.jsx';
 import { MeasurePanel } from './components/measure.jsx';
 import { PartsPanel } from './components/partstable.jsx';
 import { AiPanel } from './components/aipanel.jsx';
+import { AiSandbox } from './components/aisandbox.jsx';
 
 export const ClassicEditor = ( props ) =>
 {
@@ -49,7 +50,8 @@ export const ClassicEditor = ( props ) =>
           <Show when={ !props.aiMode } fallback={
             <div class='tabs__content absolute-0'>
               <div class='centered-scroller'>
-                <AiPanel/>
+                {/* Using sandbox instead of live panel to avoid current API errors */}
+                <AiSandbox onExit={ props.onToggleAi } />
               </div>
             </div>
           }>
