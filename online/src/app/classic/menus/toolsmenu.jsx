@@ -33,6 +33,10 @@ export const ToolsMenu = () =>
         
         <CommandAction label="Generate Polytope..." action="showPolytopeDialog" />
 
+  <Divider />
+
+  <CommandAction label="AI Hello" action="showAiHello" />
+
         <Divider />
         
         <CommandAction label="Validate Paneled Surface" action="Validate2Manifold" />

@@ -3,6 +3,7 @@ import { createContext, useContext } from "solid-js";
 import { unwrap } from "solid-js/store";
 
 import { controllerExportAction, subController, useEditor } from "../../framework/context/editor.jsx";
+import { AiHelloDialog } from "../dialogs/aihello.jsx";
 import { useCamera } from "../../../viewer/context/camera.jsx";
 import { useSymmetry } from './symmetry.jsx';
 import { saveTextFileAs, saveTextFile } from "../../../viewer/util/files.js";
@@ -82,6 +83,8 @@ export const CommandsProvider = props =>
       });
   }
       
+  const [ showAiHello, setShowAiHello ] = createSignal( false );
+
   const commands = {};
 
   const listeners = new Set();
@@ -183,6 +186,9 @@ export const CommandsProvider = props =>
   createCommand( 'tetrasymm',          { mods:"⌥⌘", key:"T" }, symmetryAction( 'octahedral', 'tetrasymm' ) );
   createCommand( 'showPolytopeDialog', { mods:"⌥⌘", key:"P" }, showPolytopesDialog );
 
+  // Simple demo command to open the AI Hello dialog
+  createCommand( 'showAiHello', undefined, () => setShowAiHello( true ) );
+
   // Route Replace With Panels through the symmetry controller so it appends the
   // current system and style (mode) like the desktop app does.
   createCommand( 'ReplaceWithShape', undefined, () => controllerAction( symmetryController(), 'ReplaceWithShape' ) );
@@ -190,6 +196,7 @@ export const CommandsProvider = props =>
   return (
     <CommandsContext.Provider value={{ registerKeyListener, getCommand }}>
       {props.children}
+      <AiHelloDialog open={showAiHello()} close={ () => setShowAiHello(false) } />
     </CommandsContext.Provider>
   );
 }
