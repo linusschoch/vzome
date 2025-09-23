@@ -2,6 +2,9 @@
 import { Show, mergeProps } from 'solid-js'
 import AppBar from '@suid/material/AppBar'
 import Toolbar from '@suid/material/Toolbar'
+import IconButton from '@suid/material/IconButton'
+import Tooltip from '@suid/material/Tooltip'
+import PsychologyIcon from '@suid/icons-material/Psychology'
 import Typography from '@suid/material/Typography'
 import Box from '@suid/material/Box'
 
@@ -42,6 +45,13 @@ export const VZomeAppBar = ( props ) =>
           <Show when={!merged.title} >
             {/* This is here, not in ClassicApp or ClassicEditor, because the icon appears in the app bar */}
             <SharingDialog/>  
+          </Show>
+          <Show when={props.onToggleAi}>
+            <Tooltip title={ props.aiMode? 'Exit AI Panel' : 'Open AI Panel' }>
+              <IconButton color={ props.aiMode? 'secondary' : 'inherit' } onClick={props.onToggleAi} size='large'>
+                <PsychologyIcon/>
+              </IconButton>
+            </Tooltip>
           </Show>
           <AboutDialog title={props.customTitle? props.title : 'vZome '+ props.title} about={props.about} />
         </Toolbar>

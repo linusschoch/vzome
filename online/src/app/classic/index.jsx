@@ -14,6 +14,7 @@ import { useEditor } from '../framework/context/editor.jsx';
 
 import { VZomeAppBar } from './components/appbar.jsx';
 import { ClassicEditor } from './classic.jsx';
+import { createSignal } from 'solid-js';
 import { SymmetryProvider } from './context/symmetry.jsx';
 import { CommandsProvider } from './context/commands.jsx';
 import { SceneChangeListener } from '../../viewer/context/scene.jsx';
@@ -41,10 +42,12 @@ const Persistence = () =>
 
 export const ClassicApp = () =>
 {
+  const [ aiMode, setAiMode ] = createSignal( false );
+  const toggleAi = () => setAiMode( v => !v );
   return (
     <SymmetryProvider>
       <CommandsProvider>
-        <VZomeAppBar title=''
+        <VZomeAppBar title='' aiMode={aiMode()} onToggleAi={toggleAi}
           spacer={ <>
             <Menubar>
               <FileMenu/>
@@ -76,7 +79,7 @@ export const ClassicApp = () =>
         {/* This hooks up the main scene to worker changes */}
         <SceneChangeListener/>
 
-        <ClassicEditor/>
+  <ClassicEditor aiMode={aiMode()} />
       </CommandsProvider>
     </SymmetryProvider>
   );

@@ -14,7 +14,7 @@ import { MeasurePanel } from './components/measure.jsx';
 import { PartsPanel } from './components/partstable.jsx';
 import { AiPanel } from './components/aipanel.jsx';
 
-export const ClassicEditor = () =>
+export const ClassicEditor = ( props ) =>
 {
   const { rootController, indexResources } = useEditor();
   indexResources();
@@ -46,20 +46,28 @@ export const ClassicEditor = () =>
 
         <div class='editor-drawer grid-rows-min-1 relative-h100'>
           <CameraControls/>
-          <Tabs values={ [ 'Build', 'Parts', 'Measure', 'AI' ] } value={tab()} onChange={changeTab}>
-            <Tab value='Build'>
-              <StrutBuildPanel/>
-            </Tab>
-            <Tab value='Parts'>
-              <PartsPanel/>
-            </Tab>
-            <Tab value='Measure'>
-              <MeasurePanel/>
-            </Tab>
-            <Tab value='AI'>
-              <AiPanel/>
-            </Tab>
-          </Tabs>
+          <Show when={ !props.aiMode } fallback={
+            <div class='tabs__content absolute-0'>
+              <div class='centered-scroller'>
+                <AiPanel/>
+              </div>
+            </div>
+          }>
+            <Tabs values={ [ 'Build', 'Parts', 'Measure', 'AI' ] } value={tab()} onChange={changeTab}>
+              <Tab value='Build'>
+                <StrutBuildPanel/>
+              </Tab>
+              <Tab value='Parts'>
+                <PartsPanel/>
+              </Tab>
+              <Tab value='Measure'>
+                <MeasurePanel/>
+              </Tab>
+              <Tab value='AI'>
+                <AiPanel/>
+              </Tab>
+            </Tabs>
+          </Show>
         </div>
 
       </div>
