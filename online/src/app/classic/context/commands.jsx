@@ -101,6 +101,11 @@ export const CommandsProvider = props =>
       document.body .addEventListener( "keydown", evt => {
         if ( menuKeyEventsSuspended )
           return;
+        const target = evt.target;
+        // Allow native editing shortcuts inside editable fields
+        if ( target && ( target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable ) ) {
+          return; // don't intercept, let browser handle (enables paste into API key field)
+        }
         if ( targetCodes .indexOf( evt.code ) < 0 )
           return;
         if ( hasMeta !== evt.metaKey )
