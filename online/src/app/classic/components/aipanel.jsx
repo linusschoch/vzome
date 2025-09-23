@@ -3,7 +3,6 @@ import Button from '@suid/material/Button';
 import TextField from '@suid/material/TextField';
 import Alert from '@suid/material/Alert';
 import IconButton from '@suid/material/IconButton';
-import Tooltip from '@suid/material/Tooltip';
 import CloseIcon from '@suid/icons-material/Close';
 import SendIcon from '@suid/icons-material/Send';
 
@@ -84,20 +83,16 @@ export const AiPanel = () => {
       </Show>
       <div style={{ display:'flex', gap:'6px' }}>
         <TextField fullWidth size='small' placeholder='Ask a question about vZome...' value={input()} onKeyDown={ e => { if ( e.key==='Enter' && !e.shiftKey ) { e.preventDefault(); send(); } } } onChange={ e=>setInput(e.target.value) } />
-        <Tooltip title='Send'>
-          <span>
-            <IconButton color='primary' disabled={loading() || !input().trim()} onClick={send}>
-              <SendIcon/>
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title='Clear chat'>
-          <span>
-            <IconButton disabled={loading() || visibleMessages().length===0} onClick={clearChat}>
-              <CloseIcon/>
-            </IconButton>
-          </span>
-        </Tooltip>
+        <span title='Send'>
+          <IconButton color='primary' disabled={loading() || !input().trim()} onClick={send}>
+            <SendIcon/>
+          </IconButton>
+        </span>
+        <span title='Clear chat'>
+          <IconButton disabled={loading() || visibleMessages().length===0} onClick={clearChat}>
+            <CloseIcon/>
+          </IconButton>
+        </span>
       </div>
       <Alert severity='info'>Demo: key never sent to server. Avoid sensitive data.</Alert>
     </div>
