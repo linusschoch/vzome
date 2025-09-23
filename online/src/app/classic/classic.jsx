@@ -12,6 +12,7 @@ import { ErrorAlert } from "./components/alert.jsx";
 import { SceneControls } from './components/scenecontrols.jsx';
 import { MeasurePanel } from './components/measure.jsx';
 import { PartsPanel } from './components/partstable.jsx';
+import { AiPanel } from './components/aipanel.jsx';
 
 export const ClassicEditor = () =>
 {
@@ -45,7 +46,7 @@ export const ClassicEditor = () =>
 
         <div class='editor-drawer grid-rows-min-1 relative-h100'>
           <CameraControls/>
-          <Tabs values={ [ 'Build', 'Parts', 'Measure'] } value={tab()} onChange={changeTab}>
+          <Tabs values={ [ 'Build', 'Parts', 'Measure', 'AI' ] } value={tab()} onChange={changeTab}>
             <Tab value='Build'>
               <StrutBuildPanel/>
             </Tab>
@@ -54,6 +55,9 @@ export const ClassicEditor = () =>
             </Tab>
             <Tab value='Measure'>
               <MeasurePanel/>
+            </Tab>
+            <Tab value='AI'>
+              <AiPanel/>
             </Tab>
           </Tabs>
         </div>
