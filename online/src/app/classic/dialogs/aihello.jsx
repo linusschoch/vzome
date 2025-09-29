@@ -8,7 +8,7 @@ import TextField from '@suid/material/TextField';
 import Alert from '@suid/material/Alert';
 
 /*
-  Simple "Hello World" OpenAI Chat Completion dialog.
+  Simple "Hello World" OpenAI Responses API dialog.
   NOTE: For security, we DO NOT persist or transmit the API key beyond this session.
   The request is made directly from the browser; consider adding a proxy server for production.
 */
@@ -19,6 +19,20 @@ export const AiHelloDialog = props => {
   const [ loading, setLoading ]       = createSignal( false );
   const [ error, setError ]           = createSignal( '' );
   const [ model, setModel ]           = createSignal( 'gpt-4o-mini' ); // small, fast model for demo
+  const [ maxTokens, setMaxTokens ]   = createSignal( 200 );
+
+  const parseReply = ( data ) => {
+    try {
+      const message = data?.output?.find?.( item => item.type === 'message' );
+      const contentArr = message?.content || [];
+      const textPart = contentArr.find( c => c.type === 'output_text' );
+      const text = textPart?.text?.trim();
+      if ( text ) return text;
+      return `[(empty) id=${data?.id||'none'} status=${data?.status||'unknown'}]`;
+    } catch (e) {
+      return `[parse error: ${e?.message||e}]`;
+    }
+  };
 
   const callApi = async () => {
     setError( '' );
@@ -27,22 +41,27 @@ export const AiHelloDialog = props => {
     if ( ! key ) { setError( 'API key required.' ); return; }
     setLoading( true );
     try {
-    // OpenAI Responses API call replacing legacy chat/completions.
-    const res = await fetch( 'https://api.openai.com/v1/responses', {
+      const isGpt5 = /^gpt-5/i.test( model() );
+      const body = {
+        model: model(),
+        input: userPrompt(),
+        instructions: 'You are a concise assistant embedded inside the vZome geometry app. Keep replies short.',
+        max_output_tokens: maxTokens(),
+      };
+      if ( !isGpt5 ) body.temperature = 0.7;
+      if ( isGpt5 ) body.reasoning = { effort: 'medium' };
+      const controller = new AbortController();
+      const timeout = setTimeout( () => controller.abort(), 60000 );
+      const res = await fetch( 'https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${key}`
         },
-        body: JSON.stringify({
-      model: model(),
-      input: userPrompt(),
-      instructions: 'You are a concise assistant embedded inside the vZome geometry app. Keep replies short.',
-      temperature: 0.7,
-      max_output_tokens: 120,
-      // store defaults to true; leave it. We are not streaming here.
-        })
+        body: JSON.stringify( body ),
+        signal: controller.signal
       });
+      clearTimeout( timeout );
       if ( !res.ok ) {
         let detail = '';
         try {
@@ -54,20 +73,43 @@ export const AiHelloDialog = props => {
         if ( res.status === 401 ) {
           throw new Error( 'HTTP 401 Unauthorized: Invalid API key. Verify you copied it correctly from https://platform.openai.com/account/api-keys' );
         }
+        if ( res.status === 408 ) {
+          throw new Error( 'HTTP 408 timeout: try reducing max tokens or simplifying prompt.' );
+        }
         throw new Error( `HTTP ${res.status}: ${detail}` );
       }
       const data = await res.json();
-      // Responses API returns an array 'output'. Find first output message content text.
-      let msg = '(no content)';
-      try {
-        const message = data?.output?.find?.( item => item.type === 'message' );
-        const contentArr = message?.content || [];
-        const textPart = contentArr.find( c => c.type === 'output_text' );
-        msg = textPart?.text?.trim() || msg;
-      } catch { /* ignore parse errors */ }
+      let msg = parseReply( data );
+      if ( /\(empty\)|\[\(empty\)/.test( msg ) ) {
+        // Retry once with same body (simple dialog) if empty
+        try {
+          const res2 = await fetch( 'https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify( body )
+          });
+          if ( res2.ok ) {
+            const data2 = await res2.json();
+            const msg2 = parseReply( data2 );
+            if ( !/\(empty\)|\[\(empty\)/.test( msg2 ) ) {
+              msg = msg2 + ' (retried)';
+            } else {
+              msg = msg + ' (debug: still empty after retry)';
+            }
+          } else {
+            msg = msg + ' (retry failed status ' + res2.status + ')';
+          }
+        } catch (e) {
+          msg = msg + ' (retry error: ' + (e?.message||e) + ')';
+        }
+      }
       setResponse( msg );
     } catch (e) {
-      setError( e.message );
+      if ( e?.name === 'AbortError' ) setError( 'Client-side timeout after 60s. Try fewer tokens.' );
+      else setError( e.message );
     } finally {
       setLoading( false );
     }
@@ -84,7 +126,9 @@ export const AiHelloDialog = props => {
           value={userPrompt()} onChange={ e => setUserPrompt( e.target.value ) } />
         <TextField label='Model' size='small' fullWidth
           value={model()} onChange={ e => setModel( e.target.value ) }
-          helperText='Try gpt-4o, gpt-4o-mini, or another available model.' />
+          helperText='Try gpt-4o-mini, gpt-4o, or gpt-5.' />
+        <TextField label='Max Output Tokens' size='small' type='number' fullWidth value={maxTokens()} onChange={ e => setMaxTokens( Math.max(1, Math.min( 2000, parseInt( e.target.value || '1', 10 ) ) ) ) }
+          helperText='1-2000. Larger may timeout.' />
         <Button variant='contained' disabled={loading()} onClick={callApi}>
           { loading()? 'Calling...' : 'Send' }
         </Button>
@@ -94,7 +138,7 @@ export const AiHelloDialog = props => {
         <Show when={response()}>
           <Alert severity='success' sx={{ 'white-space': 'pre-wrap' }}>{response()}</Alert>
         </Show>
-        <Alert severity='info'>Demo only. Key never stored. For streaming or secure usage, add a server proxy.</Alert>
+        <Alert severity='info'>Demo only. Key never stored. Increase Max Output Tokens for longer answers.</Alert>
       </DialogContent>
       <DialogActions>
         <Button onClick={ () => props.close() } color='primary'>Close</Button>
