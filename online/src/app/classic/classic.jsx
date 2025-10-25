@@ -28,10 +28,10 @@ export const ClassicEditor = ( props ) =>
 
   let alertRoot;
   return (
-    <div id='classic' ref={alertRoot} style={{ display: 'grid', 'grid-template-rows': '1fr', 'background-color':'#000', color:'#eee' }} class='whitesmoke-bkgd'>
-      <div class='editor-main grid-cols-1-min whitesmoke-bkgd' style={{ 'background-color':'#000' }} >
+    <div id='classic' ref={alertRoot} style={{ display: 'grid', 'grid-template-rows': '1fr' }} class='whitesmoke-bkgd'>
+      <div class='editor-main grid-cols-1-min whitesmoke-bkgd' >
 
-  <div id='editor-canvas' style={{ display: 'grid', 'grid-template-rows': 'min-content min-content 1fr min-content', 'background-color':'#000' }}>
+  <div id='editor-canvas' style={{ display: 'grid', 'grid-template-rows': 'min-content min-content 1fr min-content' }}>
           <ToolFactoryBar/>
           <ToolBar toolsController={toolsController()} editorController={rootController()} />
           <div class="relative-h100 grid-cols-min-1">
@@ -44,7 +44,7 @@ export const ClassicEditor = ( props ) =>
           </div>
         </div>
 
-  <div class='editor-drawer grid-rows-min-1 relative-h100' style={{ 'background-color':'#000' }}>
+  <div class='editor-drawer grid-rows-min-1 relative-h100'>
           <CameraControls/>
           <Show when={ !props.aiMode } fallback={
             <div class='tabs__content absolute-0'>

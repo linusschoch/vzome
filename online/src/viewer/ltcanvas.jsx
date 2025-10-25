@@ -15,7 +15,7 @@ import { useViewer } from "./context/viewer.jsx";
 const Lighting = () =>
 {
   const { state } = useCamera();
-  const color = createMemo( () => new Color( state.lighting.backgroundColor ) );
+  const color = createMemo( () => new Color( '#000000' ) ); // force black canvas background
   useFrame( ({scene}) => { scene.background = color() } )
   let centerObject;
   // The ambientLight has to be "invisible" so we don't get an empty node in glTF export.
